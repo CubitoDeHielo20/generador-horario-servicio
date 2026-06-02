@@ -1,0 +1,137 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Generador de Horarios Académicos</title>
+    <link rel="stylesheet" href="styles.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+</head>
+<body>
+
+    <header>
+        <h1>Generador de Horarios - Panel de Control</h1>
+        <nav>
+            <button class="tab-btn active" onclick="openTab(event, 'materias-global')">Materias Globales</button>
+            <button class="tab-btn" onclick="openTab(event, 'profesores')">Asignación de Profesores</button>
+            <button class="tab-btn" onclick="openTab(event, 'crear-horario')">Algoritmo de Horarios</button>
+        </nav>
+    </header>
+
+    <main class="container">
+        
+        <!-- PANEL 1: MATERIAS GLOBALES -->
+        <section id="materias-global" class="tab-content active">
+            <h2>Registro de Asignaturas y Horas Académicas Semanales</h2>
+            <div class="card">
+                <form class="grid-form" id="form-materia">
+                    <input type="text" id="mat-nombre" placeholder="Nombre de la Asignatura" required>
+                    <select id="mat-anio" required>
+                        <option value="">Seleccionar Año</option>
+                        <option value="1">1er Año</option>
+                        <option value="2">2do Año</option>
+                        <option value="3">3er Año</option>
+                        <option value="4">4to Año</option>
+                        <option value="5">5to Año</option>
+                    </select>
+                    <input type="number" id="mat-horas" placeholder="Horas semanales (ej. 4)" min="2" step="2" required>
+                    <button type="submit" class="btn-add">Registrar Materia</button>
+                </form>
+            </div>
+            <div class="list-container">
+                <h3>Plan de Estudios Guardado</h3>
+                    
+                    <div id="contenedor-fichas-materias" class="cards-grid">
+                    </div>
+                
+            </div>
+        </section>
+
+        <!-- PANEL 2: PROFESORES -->
+        <section id="profesores" class="tab-content">
+            <h2>Carga Académica del Profesorado (Máx 40 hrs)</h2>
+            <div class="card">
+                <form class="grid-form" id="form-profesor">
+                    <input type="text" id="prof-nombre" placeholder="Nombre Completo del Docente" required>
+                    <select id="prof-materia" required>
+                        <option value="">Asignar de la Base de Datos Global</option>
+                    </select>
+                    <select id="prof-anio" required onchange="actualizarSeccionesDisponibles(this.value)">
+                        <option value="">Año</option>
+                        <option value="1">1ero</option>
+                        <option value="2">2do</option>
+                        <option value="3">3ero</option>
+                        <option value="4">4to</option>
+                        <option value="5">5to</option>
+                    </select>
+                    <select id="prof-seccion" required>
+                        <option value="">Sección</option>
+                    </select>
+                    <button type="submit" class="btn-add">Vincular Docente</button>
+                </form>
+            </div>
+            <div class="list-container">
+                <h3>Personal y Secciones Asignadas</h3>
+                <table class="data-table">
+                    <thead>
+                        <tr>
+                            <th>Profesor</th>
+                            <th>Materia Vinculada</th>
+                            <th>Curso Dictado</th>
+                            <th>Horas Semanales</th>
+                            <th>Acciones</th>
+                        </tr>
+                    </thead>
+                    <tbody id="tabla-profesores-body"></tbody>
+                </table>
+            </div>
+        </section>
+
+        <!-- PANEL 3: ALGORITMO HORARIO -->
+        <section id="crear-horario" class="tab-content">
+            <h2>Generación Automática con Distribución Anticlúster</h2>
+            <div class="card-selection" style="display: flex; align-items: center; gap: 15px; margin-bottom: 20px; flex-wrap: wrap;">
+                <label>Visualizar Cronograma de:</label>
+                <select id="filtro-anio" onchange="actualizarTablaHorarioVisual()">
+                    <option value="1">1er Año</option>
+                    <option value="2">2do Año</option>
+                    <option value="3">3er Año</option>
+                    <option value="4">4to Año</option>
+                    <option value="5">5to Año</option>
+                </select>
+                <select id="filtro-seccion" onchange="actualizarTablaHorarioVisual()">
+                    <option value="A">Sección A</option>
+                    <option value="B">Sección B</option>
+                </select>
+                <button type="button" class="btn-generate" onclick="procesarMotorHorarios()">⚡ GENERAR HORARIO INSTITUCIONAL</button>
+                <button type="button" style="background-color: #e74c3c; color: white; border: none; padding: 0.7rem 1.2rem; border-radius: 4px; cursor: pointer; font-weight: bold;" onclick="eliminarHorariosTotales()">🗑️ BORRAR HORARIOS GENERADOS</button>
+                <button type="button" style="background-color: #27ae60; color: white; border: none; padding: 0.7rem 1.2rem; border-radius: 4px; cursor: pointer; font-weight: bold;" onclick="exportarPDF()">
+                PDF 📄
+                </button>
+            </div>
+
+            <div class="schedule-container">
+                <table class="schedule-matrix">
+                    <thead>
+                        <tr>
+                            <th>Hora Académica</th>
+                            <th>Lunes</th>
+                            <th>Martes</th>
+                            <th>Miércoles</th>
+                            <th>Jueves</th>
+                            <th>Viernes</th>
+                        </tr>
+                    </thead>
+                    <tbody id="matriz-horario-body"></tbody>
+                </table>
+            </div>
+           
+        </section>
+
+    </main>
+
+    <!-- Carga de scripts en orden de dependencia -->
+    <script src="database.js"></script>
+    <script src="script.js"></script>
+</body>
+</html>

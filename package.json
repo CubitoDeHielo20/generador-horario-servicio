@@ -1,0 +1,13 @@
+{
+  "name": "sistema-generador-horarios",
+  "version": "1.0.0",
+  "main": "index.html",
+  "window": {
+    "title": "Sistema de Gestión de Horarios Institucionales",
+    "width": 1280,
+    "height": 800,
+    "toolbar": true, 
+    "position": "center",
+    "icon": "icono.png"
+  }
+}

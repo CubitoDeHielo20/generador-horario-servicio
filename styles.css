@@ -187,128 +187,226 @@ input, select {
     }
 }
 
+/* =======================================================================
+   DISEÑO MEJORADO: TARJETAS DE MATERIAS MODERNAS Y COHESIVAS
+   ======================================================================= */
 
-
-/* ==========================================================================
-   DISEÑO V4: FICHAS PREMIUM CON DEGRADADOS LLAMATIVOS Y ULTRA DEFINIDAS
-   ========================================================================== */
-
-/* Contenedor con excelente separación para que respiren las tarjetas */
 .cards-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
-    gap: 2.2rem;
-    padding: 2rem 0;
-    width: 100%;
-    box-sizing: border-box;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 1.5rem;
+  padding: 1.5rem 0;
+  width: 100%;
+  box-sizing: border-box;
 }
 
-/* Base de la Ficha: Ya no es blanca, ahora tiene personalidad completa */
+/* Base de la Ficha Rediseñada */
 .materia-card {
-    border-radius: 20px; /* Esquinas más suaves y modernas */
-    padding: 1.8rem;
-    display: flex;
-    flex-direction: column;
-    justify-content: space-between;
-    position: relative;
-    overflow: hidden;
-    border: none; /* Quitamos bordes viejos */
-    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.15); /* Sombra marcada para definición */
-    transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
-    color: #ffffff; /* Todo el texto interno será blanco para resaltar */
+  border-radius: 12px;
+  padding: 1.5rem;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  position: relative;
+  overflow: hidden;
+  border-left: 6px solid rgba(0, 0, 0, 0.3); /* Barra lateral distintiva */
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.05);
+  transition: transform 0.3s ease, box-shadow 0.3s ease;
+  color: #ffffff;
+  min-height: 160px;
 }
 
-/* Efecto al pasar el cursor (Hover) */
+/* Efecto Hover sutil */
 .materia-card:hover {
-    transform: translateY(-8px) scale(1.02);
-    box-shadow: 0 20px 40px rgba(0, 0, 0, 0.25);
+  transform: translateY(-4px);
+  box-shadow: 0 8px 25px rgba(0, 0, 0, 0.12);
 }
 
-/* Títulos imponentes */
+/* Tipografías internas */
 .materia-card-content h3 {
-    margin: 0 0 1.2rem 0;
-    color: #ffffff;
-    font-size: 1.4rem;
-    font-weight: 800;
-    letter-spacing: -0.5px;
-    line-height: 1.3;
-    text-shadow: 0 2px 4px rgba(0, 0, 0, 0.15); /* Sutil relieve para legibilidad */
+  margin: 0 0 0.8rem 0;
+  color: #ffffff;
+  font-size: 1.25rem;
+  font-weight: 700;
+  line-height: 1.3;
 }
 
 /* Etiquetas de información interna */
 .info-tag {
-    font-size: 0.95rem;
-    color: rgba(255, 255, 255, 0.9); /* Blanco suave */
-    margin-bottom: 0.6rem;
-    display: flex;
-    align-items: center;
+  font-size: 0.9rem;
+  color: rgba(255, 255, 255, 0.9);
+  margin-bottom: 0.4rem;
+  display: flex;
+  align-items: center;
 }
 
 .info-tag strong {
-    color: #ffffff;
-    font-weight: 700;
-    margin-right: 5px;
+  color: #ffffff;
+  font-weight: 600;
+  margin-right: 5px;
 }
 
-/* Badges con estilo cápsula de vidrio (Glassmorphism) */
+/* Cápsula de Bloques de Horas */
 .badge-bloques {
-    display: inline-block;
-    padding: 6px 14px;
-    border-radius: 30px;
-    font-weight: 800;
-    font-size: 0.75rem;
-    text-transform: uppercase;
-    letter-spacing: 0.8px;
-    margin-top: 1.2rem;
-    background: rgba(255, 255, 255, 0.25); /* Fondo blanco translúcido */
-    color: #ffffff;
-    backdrop-filter: blur(5px);
-    border: 1px solid rgba(255, 255, 255, 0.3);
-    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.05);
+  display: inline-block;
+  padding: 4px 10px;
+  border-radius: 20px;
+  font-weight: 700;
+  font-size: 0.7rem;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  margin-top: 0.8rem;
+  background: rgba(255, 255, 255, 0.2);
+  color: #ffffff;
+  border: 1px solid rgba(255, 255, 255, 0.25);
 }
 
-/* Botón de Eliminar moderno e integrado al fondo oscuro */
+/* Contenedor de acciones dentro de la tarjeta */
+.materia-card-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  margin-top: 1rem;
+}
+
+/* Botón de Editar Integrado */
+.btn-editar-ficha {
+  background: rgba(255, 255, 255, 0.2);
+  color: #ffffff;
+  border: 1px solid rgba(255, 255, 255, 0.4);
+  padding: 6px 12px;
+  border-radius: 6px;
+  cursor: pointer;
+  font-weight: 600;
+  font-size: 0.8rem;
+  transition: all 0.2s ease;
+}
+
+.btn-editar-ficha:hover {
+  background: #2980b9;
+  border-color: #2980b9;
+}
+
+/* Botón de Eliminar Integrado */
 .btn-eliminar-ficha {
-    background: rgba(239, 68, 68, 0.2);
-    color: #ffffff;
-    border: 1px solid rgba(255, 255, 255, 0.4);
-    padding: 8px 16px;
-    border-radius: 10px;
-    cursor: pointer;
-    font-weight: 700;
-    font-size: 0.85rem;
-    margin-top: 1.5rem;
-    align-self: flex-end;
-    transition: all 0.3s ease;
-    backdrop-filter: blur(5px);
+  background: rgba(255, 255, 255, 0.15);
+  color: #ffffff;
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  padding: 6px 12px;
+  border-radius: 6px;
+  cursor: pointer;
+  font-weight: 600;
+  font-size: 0.8rem;
+  transition: all 0.2s ease;
 }
 
 .btn-eliminar-ficha:hover {
-    background: #ef4444;
-    border-color: #ef4444;
-    box-shadow: 0 5px 15px rgba(239, 68, 68, 0.4);
-}
-
-/* Destello de luz ambiental en las esquinas */
-.materia-card::before {
-    content: '';
-    position: absolute;
-    top: -20%;
-    right: -20%;
-    width: 140px;
-    height: 140px;
-    background: rgba(255, 255, 255, 0.15);
-    border-radius: 50%;
-    pointer-events: none;
-    filter: blur(10px);
+  background: #e74c3c;
+  border-color: #e74c3c;
 }
 
 /* Animación de entrada */
 .animate-card {
-    animation: popIn 0.4s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+  animation: cardFadeIn 0.3s ease-out forwards;
 }
 
-@keyframes popIn {
-    from { opacity: 0; transform: translateY(20px) scale(0.95); }
-    to { opacity: 1; transform: translateY(0) scale(1); }
+@keyframes cardFadeIn {
+  from { opacity: 0; transform: translateY(15px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+/* =======================================================================
+   SISTEMA DE NOTIFICACIONES TOAST (MODERNO Y FLOTANTE)
+   ======================================================================= */
+.toast-container {
+  position: fixed;
+  top: 20px;
+  right: 20px;
+  z-index: 9999;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.toast {
+  background: rgba(30, 30, 30, 0.85);
+  backdrop-filter: blur(8px);
+  color: #ffffff;
+  padding: 12px 20px;
+  border-radius: 8px;
+  font-size: 0.9rem;
+  font-weight: 600;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  display: flex;
+  align-items: center;
+  border-left: 5px solid #3498db;
+  min-width: 250px;
+  max-width: 350px;
+  transform: translateX(120%);
+  animation: toastIn 0.3s forwards, toastOut 0.3s linear 3s forwards;
+}
+
+/* Tipos de notificaciones por color */
+.toast.success { border-left-color: #2ecc71; } /* Verde - Éxito */
+.toast.error { border-left-color: #e74c3c; }   /* Rojo - Error */
+.toast.info { border-left-color: #3498db; }    /* Azul - Info/Edición */
+.toast.warning { border-left-color: #f39c12; } /* Naranja - Eliminación */
+
+/* Animaciones */
+@keyframes toastIn {
+  to { transform: translateX(0); }
+}
+
+@keyframes toastOut {
+  0% { opacity: 1; transform: translateX(0); }
+  100% { opacity: 0; transform: translateX(40px); }
+}
+
+/* =======================================================================
+   BARRA DE FILTRADO DE MATERIAS
+   ======================================================================= */
+.materias-filter-bar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1.5rem;
+  background: var(--white);
+  padding: 1.5rem;
+  border-radius: 6px;
+  margin-top: 2rem;
+  margin-bottom: 1rem;
+  border: 1px solid var(--border);
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
+  align-items: center;
+}
+
+.filter-group {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  flex: 1;
+  min-width: 200px;
+}
+
+.filter-group label {
+  font-size: 0.9rem;
+  color: var(--primary);
+  font-weight: 600;
+}
+
+.filter-group input,
+.filter-group select {
+  background: #ffffff;
+  color: var(--primary);
+  border: 1px solid var(--border);
+  padding: 8px 12px;
+  border-radius: 4px;
+  font-size: 0.9rem;
+  outline: none;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.filter-group input:focus,
+.filter-group select:focus {
+  border-color: #2980b9;
+  box-shadow: 0 0 5px rgba(41, 128, 185, 0.2);
 }

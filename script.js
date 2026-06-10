@@ -44,6 +44,23 @@ document.addEventListener("DOMContentLoaded", () => {
     actualizarTablaHorarioVisual();
 });
 
+// FUNCIÓN DE NOTIFICACIONES TOAST PERSONALIZADAS
+function mostrarNotificacion(mensaje, tipo = 'info') {
+  const container = document.getElementById('toast-container');
+  if (!container) return;
+  
+  const toast = document.createElement('div');
+  toast.className = `toast ${tipo}`;
+  toast.innerText = mensaje;
+  
+  container.appendChild(toast);
+  
+  // Remover la notificación del HTML automáticamente después de que termine la animación (3.3s)
+  setTimeout(() => {
+    toast.remove();
+  }, 3300);
+}
+
 // Control de navegación entre pestañas (Tabs)
 function openTab(evt, tabName) {
     const tabContents = document.getElementsByClassName("tab-content");
@@ -70,71 +87,172 @@ function actualizarSeccionesDisponibles(anio) {
     });
 }
 
-// --- CONTROLADOR DE FORMULARIO Y VISTA: MATERIAS (DISEÑO DE FICHAS) ---
-document.getElementById('form-materia').addEventListener('submit', function(e) {
-    e.preventDefault();
-    const nombre = document.getElementById('mat-nombre').value.trim();
-    const anio = document.getElementById('mat-anio').value;
-    const horas = parseInt(document.getElementById('mat-horas').value);
+// Variable global para rastrear la materia en edición
+let idMateriaEditando = null;
 
-    // Guardamos la materia con la estructura limpia
-    DB.guardarMateria({ id: Date.now().toString(), nombre, anio, horas });
+// Función para cargar los datos de la tarjeta en el formulario superior
+function cargarMateriaEnFormulario(id) {
+  const materias = DB.obtenerMaterias();
+  const materia = materias.find(m => m.id === id);
+  
+  if (!materia) return;
+  
+  // Asignar los valores actuales a los inputs del formulario
+  document.getElementById('mat-nombre').value = materia.nombre;
+  document.getElementById('mat-anio').value = materia.anio;
+  document.getElementById('mat-horas').value = materia.horas;
+  
+  // Guardar el ID en la variable global
+  idMateriaEditando = id;
+  
+  // Cambiar el texto del botón de registro para indicar actualización
+  const btnSubmit = document.querySelector('#form-materia .btn-add');
+  if (btnSubmit) {
+    btnSubmit.textContent = "Actualizar Materia";
+    btnSubmit.style.backgroundColor = "#2980b9"; // Cambia a azul para diferenciarlo
+  }
+  
+  // Hacer un scroll suave hacia el formulario para comodidad del usuario
+  document.getElementById('form-materia').scrollIntoView({ behavior: 'smooth' });
+}
+
+// CONTROLADOR DE FORMULARIO Y VISTA: MATERIAS (CON NOTIFICACIONES MEJORADAS)
+document.getElementById('form-materia').addEventListener('submit', function(e) {
+  e.preventDefault();
+  
+  const nombre = document.getElementById('mat-nombre').value.trim();
+  const anio = document.getElementById('mat-anio').value;
+  const horas = parseInt(document.getElementById('mat-horas').value);
+  
+  let materiasExistentes = DB.obtenerMaterias();
+  
+  const yaExiste = materiasExistentes.some(m => 
+    m.nombre.toLowerCase() === nombre.toLowerCase() && 
+    m.anio === anio && 
+    m.id !== idMateriaEditando
+  );
+  
+  if (yaExiste) {
+    // Alerta de Error Moderna
+    mostrarNotificacion(`La asignatura "${nombre}" ya está registrada en ${anio}° Año.`, 'error');
+    return;
+  }
+  
+  if (idMateriaEditando) {
+    // --- MODO EDICIÓN ---
+    materiasExistentes = materiasExistentes.map(m => 
+      m.id === idMateriaEditando ? { ...m, nombre, anio, horas } : m
+    );
     
-    this.reset();
-    actualizarVistaMaterias(); // Llama a la nueva vista de fichas
-    actualizarSelectMaterias();
+    localStorage.setItem('materias', JSON.stringify(materiasExistentes));
+    idMateriaEditando = null;
+    
+    const btnSubmit = document.querySelector('#form-materia .btn-add');
+    if (btnSubmit) {
+      btnSubmit.textContent = "Registrar Materia";
+      btnSubmit.style.backgroundColor = ""; 
+    }
+    
+    // Alerta de Actualización Moderna
+    mostrarNotificacion(`Asignatura "${nombre}" actualizada correctamente.`, 'info');
+    
+  } else {
+    // --- MODO CREACIÓN NUEVA ---
+    DB.guardarMateria({ 
+      id: Date.now().toString(), 
+      nombre, 
+      anio, 
+      horas 
+    });
+    
+    // Alerta de Registro Exitoso Moderna
+    mostrarNotificacion(`"${nombre}" registrada exitosamente.`, 'success');
+  }
+  
+  this.reset();
+  actualizarVistaMaterias();
+  actualizarSelectMaterias();
 });
 
 // NUEVA FUNCIÓN: Genera fichas (cards) dinámicas en lugar de filas de tabla
 function actualizarVistaMaterias() {
-    const contenedor = document.getElementById('contenedor-fichas-materias');
-    if (!contenedor) return;
+  const contenedor = document.getElementById('contenedor-fichas-materias');
+  if (!contenedor) return;
+  contenedor.innerHTML = '';
+  
+  // 1. Capturar los valores de los filtros (si los elementos ya existen en el HTML)
+  const filtroBusqueda = document.getElementById('buscar-materia')?.value.toLowerCase().trim() || '';
+  const filtroAnio = document.getElementById('filtrar-anio')?.value || 'todos';
+  
+  let materias = DB.obtenerMaterias();
+  
+  // 2. Aplicar los filtros secuencialmente
+  materias = materias.filter(m => {
+    // Filtrar por texto coincidente en el nombre
+    const coincideTexto = m.nombre.toLowerCase().includes(filtroBusqueda);
+    // Filtrar por año seleccionado
+    const coincideAnio = (filtroAnio === 'todos') || (m.anio === filtroAnio);
     
-    contenedor.innerHTML = '';
-    const materias = DB.obtenerMaterias();
+    return coincideTexto && coincideAnio;
+  });
+  
+  // 3. Si no hay resultados tras el filtro, mostrar un mensaje amigable
+  if (materias.length === 0) {
+    contenedor.innerHTML = `
+      <div style="grid-column: 1 / -1; text-align: center; color: #888888; padding: 2rem; font-style: italic;">
+        No se encontraron asignaturas que coincidan con los filtros aplicados.
+      </div>
+    `;
+    return;
+  }
+  
+  // 4. Renderizar las materias filtradas
+  materias.sort((a, b) => a.anio.localeCompare(b.anio)).forEach(m => {
+    const ficha = document.createElement('div');
+    ficha.className = 'materia-card animate-card';
     
-    materias.sort((a,b) => a.anio.localeCompare(b.anio)).forEach(m => {
-        const ficha = document.createElement('div');
-        ficha.className = 'materia-card animate-card';
-        
-        // PALETA VIBRANTE: Degradados completos y llamativos por año
-        const degradadosAnio = {
-            "1": "linear-gradient(135deg, #11998e, #38ef7d)", // Esmeralda Eléctrico
-            "2": "linear-gradient(135deg, #2193b0, #6dd5ed)", // Azul Neon/Cyan
-            "3": "linear-gradient(135deg, #7f00ff, #e100ff)", // Violeta Ciberpunk
-            "4": "linear-gradient(135deg, #ff416c, #ff4b2b)", // Naranja Volcánico / Coral
-            "5": "linear-gradient(135deg, #e65c00, #f9d423)"  // Oro/Atardecer Radiante
-        };
-        
-        // Asignamos el degradado que ocupará toda la tarjeta
-        ficha.style.background = degradadosAnio[m.anio] || "linear-gradient(135deg, #3a7bd5, #3a6073)";
-
-        const bloques = Math.floor(m.horas / 2);
-
-        ficha.innerHTML = `
-            <div class="materia-card-content">
-                <h3>${m.nombre}</h3>
-                <div class="info-tag"><strong>Año:</strong> ${m.anio}° Año</div>
-                <div class="info-tag"><strong>Carga Horaria:</strong> ${m.horas} horas semanales</div>
-                <span class="badge-bloques">
-                    ${bloques} Bloques de 90 min
-                </span>
-            </div>
-            <button class="btn-eliminar-ficha" onclick="borrarMateriaRegistro('${m.id}')">
-                Eliminar ×
-            </button>
-        `;
-        contenedor.appendChild(ficha);
-    });
+    const coloresAnio = {
+      "1": "#2c3e50",
+      "2": "#16a085",
+      "3": "#2980b9",
+      "4": "#8e44ad",
+      "5": "#d35400"
+    };
+    
+    ficha.style.backgroundColor = coloresAnio[m.anio] || "#34495e";
+    const bloques = Math.floor(m.horas / 2);
+    
+    ficha.innerHTML = `
+      <div class="materia-card-content">
+        <h3>${m.nombre}</h3>
+        <div class="info-tag"><strong>Año:</strong> ${m.anio}° Año</div>
+        <div class="info-tag"><strong>Carga Horaria:</strong> ${m.horas} horas semanales</div>
+        <span class="badge-bloques">${bloques} Bloques de 90 min</span>
+      </div>
+      <div class="materia-card-actions">
+        <button class="btn-editar-ficha" onclick="cargarMateriaEnFormulario('${m.id}')">
+          Editar
+        </button>
+        <button class="btn-eliminar-ficha" onclick="borrarMateriaRegistro('${m.id}')">
+          Eliminar
+        </button>
+      </div>
+    `;
+    contenedor.appendChild(ficha);
+  });
 }
 
 // NUEVA FUNCIÓN: Borra la materia basada en su ID desde la ficha
 function borrarMateriaRegistro(id) {
-    if (confirm("¿Estás seguro de eliminar esta asignatura? Se desvinculará del plan global.")) {
-        DB.eliminarMateria(id);
-        actualizarVistaMaterias();
-        actualizarSelectMaterias();
-    }
+  // Opcional: dejamos un confirm nativo solo para seguridad antes de borrar
+  if (confirm("¿Estás seguro de que deseas eliminar esta asignatura?")) {
+    DB.eliminarMateria(id);
+    actualizarVistaMaterias();
+    actualizarSelectMaterias();
+    
+    // Alerta de eliminación moderna
+    mostrarNotificacion("Asignatura eliminada del registro.", "warning");
+  }
 }
 
 function actualizarSelectMaterias() {
@@ -327,6 +445,10 @@ function actualizarTablaHorarioVisual() {
     });
 
 }
+
+// ESCUCHADORES PARA FILTRADO EN TIEMPO REAL
+document.getElementById('buscar-materia')?.addEventListener('input', actualizarVistaMaterias);
+document.getElementById('filtrar-anio')?.addEventListener('change', actualizarVistaMaterias);
 
 function exportarPDF() {
     const anio = document.getElementById('filtro-anio').value;

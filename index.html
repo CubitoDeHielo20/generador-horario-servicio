@@ -17,6 +17,8 @@
             <button class="tab-btn active" onclick="openTab(event, 'materias-global')">Materias Globales</button>
             <button class="tab-btn" onclick="openTab(event, 'profesores')">Asignación de Profesores</button>
             <button class="tab-btn" onclick="openTab(event, 'crear-horario')">Algoritmo de Horarios</button>
+            <button class="tab-btn" onclick="openTab(event, 'admin-docentes')">Admin. Docentes</button>
+            <button class="tab-btn" onclick="openTab(event, 'admin-aulas')">Admin. Aulas</button>
         </nav>
     </header>
 
@@ -73,20 +75,16 @@
             <h2>Carga Académica del Profesorado (Máx 40 hrs)</h2>
             <div class="card">
                 <form class="grid-form" id="form-profesor">
-                    <input type="text" id="prof-nombre" placeholder="Nombre Completo del Docente" required>
+                    <select id="prof-seleccionado" required>
+                        <option value="">Seleccione un Profesor...</option>
+                    </select>
                     <select id="prof-materia" required>
                         <option value="">Asignar de la Base de Datos Global</option>
                     </select>
-                    <select id="prof-anio" required onchange="actualizarSeccionesDisponibles(this.value)">
-                        <option value="">Año</option>
-                        <option value="1">1ero</option>
-                        <option value="2">2do</option>
-                        <option value="3">3ero</option>
-                        <option value="4">4to</option>
-                        <option value="5">5to</option>
-                    </select>
                     <select id="prof-seccion" required>
                         <option value="">Sección</option>
+                        <option value="A">Sección "A"</option>
+                        <option value="B">Sección "B"</option>
                     </select>
                     <button type="submit" class="btn-add">Vincular Docente</button>
                 </form>
@@ -108,6 +106,42 @@
             </div>
         </section>
 
+        <section id="admin-docentes" class="tab-content" style="display: none;">
+            <h2>Registro de Plantilla Docente</h2>
+            <div class="card">
+                <form class="grid-form" id="form-registro-docente">
+                    <input type="text" id="nuevo-docente-nombre" placeholder="Nombre completo del Profesor" required>
+                    <button type="submit" class="btn-add">Registrar Docente</button>
+                </form>
+            </div>
+            <div class="card">
+                <h3>Docentes Registrados</h3>
+                <ul id="lista-docentes-registrados" style="list-style: none; padding: 0;"></ul>
+            </div> 
+        </section>
+        
+        <section id="admin-aulas" class="tab-content" style="display: none;">
+            <h2>Configuración de Aulas y Secciones</h2>
+            <div class="card">
+                <form class="grid-form" id="form-admin-aulas">
+                    <select id="aula-anio" required>
+                        <option value="">Selecciona el Año</option>
+                        <option value="1">1° Año</option>
+                        <option value="2">2° Año</option>
+                        <option value="3">3° Año</option>
+                        <option value="4">4° Año</option>
+                        <option value="5">5° Año</option>
+                    </select>
+                    <input type="text" id="aula-seccion" placeholder="Letra de la Sección (Ej: A, B, C)" required maxlength="1" style="text-transform: uppercase;">
+                    <button type="submit" class="btn-add">Añadir Sección</button>
+                </form>
+            </div>
+            <div class="card">
+                <h3>Estructura Escolar Actual</h3>
+                <ul id="lista-cursos-registrados" style="list-style: none; padding: 0;"></ul>
+            </div>
+        </section>
+
         <!-- PANEL 3: ALGORITMO HORARIO -->
         <section id="crear-horario" class="tab-content">
             <h2>Generación Automática con Distribución Anticlúster</h2>
@@ -125,9 +159,9 @@
                     <option value="B">Sección B</option>
                 </select>
                 <button type="button" class="btn-generate" onclick="procesarMotorHorarios()">⚡ GENERAR HORARIO INSTITUCIONAL</button>
-                <button type="button" style="background-color: #e74c3c; color: white; border: none; padding: 0.7rem 1.2rem; border-radius: 4px; cursor: pointer; font-weight: bold;" onclick="eliminarHorariosTotales()">🗑️ BORRAR HORARIOS GENERADOS</button>
+                <button type="button" style="background-color: #e74c3c; color: white; border: none; padding: 0.7rem 1.2rem; border-radius: 4px; cursor: pointer; font-weight: bold;" onclick="eliminarHorariosTotales()">BORRAR HORARIOS GENERADOS</button>
                 <button type="button" style="background-color: #27ae60; color: white; border: none; padding: 0.7rem 1.2rem; border-radius: 4px; cursor: pointer; font-weight: bold;" onclick="exportarPDF()">
-                PDF 📄
+                    📄 Exportar PDF
                 </button>
             </div>
 

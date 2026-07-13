@@ -34,6 +34,7 @@ document.addEventListener("DOMContentLoaded", () => {
     actualizarSelectDocentes(); 
     actualizarListasAdministrativas();
     actualizarTablaHorarioVisual();
+    actualizarListaVersionesUI();
 });
 
 // FUNCIÓN DE NOTIFICACIONES TOAST
@@ -348,14 +349,51 @@ function borrarProfesorRegistro(id) {
 // MOTOR Y TABLA HORARIOS
 // ==========================================
 function eliminarHorariosTotales() {
-    if (confirm("¿Seguro de limpiar la cuadrícula completa?")) { DB.vaciarHorarios(); actualizarTablaHorarioVisual(); }
+    // Verificar si hay algo que borrar primero
+    const horarioExistente = DB.obtenerHorarioGlobal();
+    
+    if (Object.keys(horarioExistente).length === 0) {
+        mostrarNotificacion("No hay ningún horario generado para eliminar.", "info");
+        return;
+    }
+
+    // Mensaje de advertencia más contundente
+    if (confirm("🚨 ¿Estás totalmente seguro de que deseas ELIMINAR TODOS los horarios generados?\n\nEsta acción dejará la cuadrícula vacía y no se puede deshacer.")) { 
+        DB.vaciarHorarios();
+        actualizarTablaHorarioVisual(); 
+        mostrarNotificacion("Horario eliminado por completo.", "warning");
+    }
 }
 
 function procesarMotorHorarios() {
+    // 1. Verificar si ya existe un horario previo
+    const horarioExistente = DB.obtenerHorarioGlobal();
+    
+    // Si el objeto tiene datos, significa que ya hay un horario generado
+    if (Object.keys(horarioExistente).length > 0) {
+        const confirmar = confirm("⚠️ ¡Atención! Ya existe un horario generado.\n\nSi continúas, el horario actual se guardará en tu historial de versiones (máx. 3) y se generará uno nuevo.\n\n¿Estás seguro de que deseas continuar?");
+        
+        if (!confirmar) {
+            mostrarNotificacion("Generación de horario cancelada.", "info");
+            return; // Detiene la ejecución de la función
+        }
+
+        // >>> 2. RESPALDO AUTOMÁTICO ANTES DE GENERAR UNO NUEVO <<<
+        respaldarHorarioActual();
+    }
+
+    // --- 3. Lógica original del generador anticlúster ---
     let nuevoHorarioGlobal = {};
     const profesores = DB.obtenerProfesores();
     let poolCargaProfesores = profesores.map(p => ({ ...p, bloquesRestantes: Math.floor(p.horasCarga / 2) }));
-    const mezclar = (array) => { for (let i = array.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [array[i], array[j]] = [array[j], array[i]]; } return array; };
+
+    const mezclar = (array) => { 
+        for (let i = array.length - 1; i > 0; i--) { 
+            const j = Math.floor(Math.random() * (i + 1));
+            [array[i], array[j]] = [array[j], array[i]]; 
+        } 
+        return array; 
+    };
 
     paresBloques.forEach(par => {
         mezclar([...dias]).forEach(dia => {
@@ -365,11 +403,13 @@ function procesarMotorHorarios() {
                     const cursoKey = `${curso.anio}-${seccion}`;
                     if (!nuevoHorarioGlobal[cursoKey]) nuevoHorarioGlobal[cursoKey] = {};
                     if (!nuevoHorarioGlobal[cursoKey][dia]) nuevoHorarioGlobal[cursoKey][dia] = {};
-
+                    
                     let materiasHoy = Object.values(nuevoHorarioGlobal[cursoKey][dia]).map(v => v.materia);
+                    
                     const asignacionValida = mezclar([...poolCargaProfesores]).find(p => 
                         p.anio === curso.anio && p.seccion === seccion && p.bloquesRestantes > 0 &&
-                        !profesoresOcupadosAhora.includes(p.nombre) && !materiasHoy.includes(p.materia)
+                        !profesoresOcupadosAhora.includes(p.nombre) && 
+                        !materiasHoy.includes(p.materia)
                     );
 
                     if (asignacionValida) {
@@ -379,13 +419,111 @@ function procesarMotorHorarios() {
                         nuevoHorarioGlobal[cursoKey][dia][par.h1] = { materia: asignacionValida.materia, profesor: asignacionValida.nombre };
                         nuevoHorarioGlobal[cursoKey][dia][par.h2] = { materia: asignacionValida.materia, profesor: asignacionValida.nombre };
                     }
+                    DB.guardarHorarioGlobal(nuevoHorarioGlobal);
+                    mostrarNotificacion("¡Horario Generado! El anterior se guardó en el historial.", "success");
+                    actualizarTablaHorarioVisual();
+                    actualizarListaVersionesUI();
                 });
             });
         });
     });
-    DB.guardarHorarioGlobal(nuevoHorarioGlobal);
-    mostrarNotificacion("¡Horario Generado!", "success");
+}
+
+// Función para guardar el horario actual en el historial de versiones
+function respaldarHorarioActual() {
+    const horarioActual = DB.obtenerHorarioGlobal();
+    
+    // Si no hay un horario generado actualmente, no respaldamos nada
+    if (!horarioActual || Object.keys(horarioActual).length === 0) return;
+
+    // Obtener las versiones anteriores que ya existan en LocalStorage
+    let versiones = JSON.parse(localStorage.getItem('historial_versiones')) || [];
+
+    // Crear el nuevo respaldo con la fecha y hora actual
+    const nuevoRespaldo = {
+        id: Date.now(), // ID único basado en el tiempo
+        fecha: new Date().toLocaleString('es-ES', { 
+            day: '2-digit', month: '2-digit', year: 'numeric', 
+            hour: '2-digit', minute: '2-digit', second: '2-digit' 
+        }),
+        datos: horarioActual
+    };
+
+    // Agregar la versión actual al INICIO del arreglo (la más reciente primero)
+    versiones.unshift(nuevoRespaldo);
+
+    // Si excede las 3 versiones, cortamos el arreglo para quedarnos solo con las 3 últimas
+    if (versiones.length > 3) {
+        versiones = versiones.slice(0, 3);
+    }
+
+    // Guardar el historial actualizado
+    localStorage.setItem('historial_versiones', JSON.stringify(versiones));
+}
+
+// Función para obtener la lista de versiones guardadas
+function obtenerVersionesAnteriores() {
+    return JSON.parse(localStorage.getItem('historial_versiones')) || [];
+}
+
+function restaurarVersiónAnterior(index) {
+    const versiones = obtenerVersionesAnteriores();
+    const versionSeleccionada = versiones[index];
+
+    if (!versionSeleccionada) {
+        mostrarNotificacion("No existe ninguna versión en esta posición.", "error");
+        return;
+    }
+
+    const confirmar = confirm(`¿Estás seguro de que deseas restaurar la versión del ${versionSeleccionada.fecha}?\n\nEsto reemplazará el horario que tienes actualmente en pantalla.`);
+
+    if (confirmar) {
+        // Opcional: Podrías respaldar el horario actual antes de pisarlo, 
+        // pero como el límite es 3, podría empujar una versión vieja fuera del historial.
+        
+        // Guardamos los datos de la versión elegida como el horario global activo
+        DB.guardarHorarioGlobal(versionSeleccionada.datos);
+        
+        // Actualizamos la interfaz
+        actualizarTablaHorarioVisual();
+        
+        mostrarNotificacion(`Versión del ${versionSeleccionada.fecha} restaurada con éxito.`, "success");
+    }
+    DB.guardarHorarioGlobal(versionSeleccionada.datos);
     actualizarTablaHorarioVisual();
+    mostrarNotificacion(`Versión del ${versionSeleccionada.fecha} restaurada.`, "success");
+    actualizarListaVersionesUI();
+}
+
+function actualizarListaVersionesUI() {
+    const versiones = obtenerVersionesAnteriores();
+    const contenedor = document.getElementById('lista-versiones'); 
+    
+    if (!contenedor) return; // Seguridad por si el HTML no ha cargado
+
+    // Si no hay respaldos guardados todavía
+    if (versiones.length === 0) {
+        contenedor.innerHTML = "<p style='color: #95a5a6; font-style: italic; margin: 0;'>No hay versiones anteriores guardadas todavía.</p>";
+        return;
+    }
+
+    // Construimos la lista con los botones
+    let html = "<ul class='versiones-list'>";
+    versiones.forEach((v, index) => {
+        html += `
+            <li class="version-item">
+                <div class="version-info">
+                    <strong>Respaldo:</strong> ${v.fecha}
+                </div>
+                <button onclick="restaurarVersiónAnterior(${index})" class="btn-restaurar">
+                    🔄 Restaurar esta versión
+                </button>
+            </li>
+        `;
+    });
+    html += "</ul>";
+    
+    contenedor.innerHTML = html;
 }
 
 function actualizarTablaHorarioVisual() {
@@ -417,4 +555,390 @@ function actualizarTablaHorarioVisual() {
         }
         tbody.appendChild(tr);
     });
+}
+
+// ==========================================
+// FUNCIÓN PARA GENERAR LA SÁBANA GENERAL
+// ==========================================
+
+function generarSabana() {
+    const horarioMatrizGlobal = DB.obtenerHorarioGlobal();
+    
+    // Validar si hay horarios generados
+    if (Object.keys(horarioMatrizGlobal).length === 0) {
+        mostrarNotificacion("No hay horarios generados para mostrar la sábana.", "error");
+        return;
+    }
+
+    // 1. Obtener todas las secciones activas y ordenarlas (Ej: ["1-A", "1-B", "2-A"...])
+    let cursosActivos = [];
+    cursosEstructura.sort((a,b) => a.anio - b.anio).forEach(curso => {
+        curso.secciones.sort().forEach(sec => {
+            cursosActivos.push(`${curso.anio}-${sec}`);
+        });
+    });
+
+    if (cursosActivos.length === 0) {
+        mostrarNotificacion("No hay cursos ni secciones registradas.", "error");
+        return;
+    }
+
+    let html = "";
+
+    // 2. Iterar por cada día de la semana
+    dias.forEach(dia => {
+        html += `
+        <div class="sabana-dia">
+            <h3>📅 ${dia}</h3>
+            <div class="table-responsive">
+                <table class="schedule-matrix sabana-table">
+                    <thead>
+                        <tr>
+                            <th style="min-width: 100px;">Hora</th>`;
+        
+        // Cabeceras de los cursos (columnas)
+        cursosActivos.forEach(cursoKey => {
+            const [anio, sec] = cursoKey.split('-');
+            html += `<th>${anio}° "${sec}"</th>`;
+        });
+        
+        html += `       </tr>
+                    </thead>
+                    <tbody>`;
+
+        // 3. Iterar por cada bloque de hora
+        cronogramaHoras.forEach(bloque => {
+            if (bloque.receso) {
+                // Fila de Receso
+                html += `<tr>
+                            <td class="receso-row">${bloque.label}</td>
+                            <td colspan="${cursosActivos.length}" class="receso-row">RECESO ESCOLAR</td>
+                         </tr>`;
+            } else {
+                // Fila de Hora de Clase Normal
+                html += `<tr>
+                            <td><strong>${bloque.label}</strong></td>`;
+                
+                // Extraer la celda de cada curso para esta hora específica
+                cursosActivos.forEach(cursoKey => {
+                    const dataCelda = horarioMatrizGlobal[cursoKey]?.[dia]?.[bloque.id];
+                    
+                    if (dataCelda) {
+                        html += `<td>
+                                    <div class="cell-materia">${dataCelda.materia}</div>
+                                    <span class="cell-profesor">${dataCelda.profesor}</span>
+                                 </td>`;
+                    } else {
+                        html += `<td><span style="color:#bdc3c7; font-size:0.75rem;">Vacío</span></td>`;
+                    }
+                });
+
+                html += `</tr>`;
+            }
+        });
+
+        html += `       </tbody>
+                </table>
+            </div>
+        </div>`;
+    });
+
+    // 4. Inyectar en el HTML y mostrar
+    const contenedorPrincipal = document.getElementById('contenedor-sabana-general');
+    const contenedorContenido = document.getElementById('contenido-sabana');
+    
+    if (contenedorPrincipal && contenedorContenido) {
+        contenedorContenido.innerHTML = html;
+        contenedorPrincipal.style.display = "block"; // Lo hacemos visible
+        
+        // Hacemos scroll suave para que el usuario vea que apareció
+        contenedorPrincipal.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        
+        mostrarNotificacion("Sábana generada correctamente.", "info");
+    }
+}
+
+// ====================================================================
+// FUNCIÓN PARA EXPORTAR LA SÁBANA COMPLETA COMO UNA SOLA TABLA EN PDF
+// ====================================================================
+function exportarSabanaPDF() {
+    const horarioMatrizGlobal = DB.obtenerHorarioGlobal();
+    
+    // Validar si existen datos para exportar
+    if (!horarioMatrizGlobal || Object.keys(horarioMatrizGlobal).length === 0) {
+        mostrarNotificacion("No hay ningún horario generado para exportar a PDF.", "error");
+        return;
+    }
+
+    // 1. Obtener y ordenar los cursos/secciones para las columnas (Ej: 1°A, 1°B, 2°A...)
+    let cursosActivos = [];
+    cursosEstructura.sort((a,b) => a.anio - b.anio).forEach(curso => {
+        curso.secciones.sort().forEach(sec => {
+            cursosActivos.push(`${curso.anio}-${sec}`);
+        });
+    });
+
+    if (cursosActivos.length === 0) {
+        mostrarNotificacion("No hay cursos ni secciones configuradas.", "error");
+        return;
+    }
+
+    // 2. Construir la ESTRUCTURA DE LA SÚPER TABLA ÚNICA
+    let tablaHtml = `
+        <table class="pdf-table">
+            <thead>
+                <tr>
+                    <th style="width: 80px;">Día</th>
+                    <th style="width: 90px;">Hora</th>
+    `;
+    
+    // Inyectar las columnas de las secciones en la cabecera única
+    cursosActivos.forEach(cursoKey => {
+        const [anio, sec] = cursoKey.split('-');
+        tablaHtml += `<th>${anio}° "${sec}"</th>`;
+    });
+    
+    tablaHtml += `
+                </tr>
+            </thead>
+            <tbody>
+    `;
+
+    // 3. Alimentar las filas de forma consecutiva (Día tras Día, Bloque tras Bloque)
+    dias.forEach(dia => {
+        cronogramaHoras.forEach(bloque => {
+            tablaHtml += `<tr>`;
+            
+            // Columna del Día y de la Hora
+            tablaHtml += `<td class="col-dia"><strong>${dia}</strong></td>`;
+            tablaHtml += `<td class="col-hora">${bloque.label}</td>`;
+
+            if (bloque.receso) {
+                // Si es hora de receso, la fila se unifica por completo
+                tablaHtml += `<td colspan="${cursosActivos.length}" class="pdf-receso">RECESO ESCOLAR</td>`;
+            } else {
+                // Si es hora de clase, buscamos qué materia toca en cada columna
+                cursosActivos.forEach(cursoKey => {
+                    const dataCelda = horarioMatrizGlobal[cursoKey]?.[dia]?.[bloque.id];
+                    
+                    if (dataCelda) {
+                        tablaHtml += `
+                            <td class="pdf-celda">
+                                <div class="pdf-materia">${dataCelda.materia}</div>
+                                <div class="pdf-profesor">${dataCelda.profesor}</div>
+                            </td>
+                        `;
+                    } else {
+                        tablaHtml += `<td class="pdf-vacio">-</td>`;
+                    }
+                });
+            }
+            
+            tablaHtml += `</tr>`;
+        });
+    });
+
+    tablaHtml += `
+            </tbody>
+        </table>
+    `;
+
+    // 4. Crear un entorno de impresión virtual aislado con CSS profesional para PDF
+    const ventanaImpresion = window.open('', '_blank');
+    
+    ventanaImpresion.document.write(`
+            <html>
+                <head>
+                    <style>
+                    @page {
+                        size: letter landscape;
+                        /* Márgenes normales para todas las páginas */
+                        margin: 15mm;
+                    }
+
+                    /* El encabezado ya no es fijo, será parte del contenido inicial */
+                    #encabezado-unico {
+                        width: 100%;
+                        height: 120px;
+                        display: flex;
+                        justify-content: space-between;
+                        align-items: center;
+                        border-bottom: 2px solid #2c3e50;
+                        margin-bottom: 30px; /* Espacio antes de que empiece la tabla */
+                    }
+
+                    .logo-img { height: 90px; width: auto; object-fit: contain; }
+
+                    body { font-family: 'Arial', sans-serif; }
+                    
+                    /* La tabla empezará después del encabezado, no tendrá top-padding */
+                    .pdf-table { width: 100%; border-collapse: collapse; }
+
+                /* 2. El contenedor del membrete ahora es relativo y se mueve con el scroll */
+                #encabezado-fijo {
+                    position: fixed;
+                    top: 0;
+                    left: 0;
+                    width: 100%;
+                    height: 120px;
+                    background: white;
+                    display: flex;
+                    justify-content: space-around; /* Reparte tus 3 logos */
+                    align-items: center;
+                    border-bottom: 2px solid #2c3e50;
+                    z-index: 1000;
+                }
+
+                .logo-img { 
+                    height: 90px; /* Ajusta este tamaño si los logos salen muy grandes */
+                    width: auto;
+                    object-fit: contain;
+                }
+
+                /* 3. La tabla queda debajo del espacio reservado */
+                .pdf-table { 
+                    width: 100%; 
+                    border-collapse: collapse; 
+                    margin-top: 10px;
+                }
+                .espacio-membrete::after {
+                    content: "📍 Liceo Nacional Guayana (120px / 4.5cm)";
+                    color: #95a5a6;
+                    font-size: 10pt;
+                    font-weight: bold;
+                }
+                
+                .titulo-reporte {
+                    text-align: center;
+                    font-size: 14pt;
+                    font-weight: bold;
+                    margin-bottom: 25px;
+                    text-transform: uppercase;
+                    color: #1a252f;
+                    border-bottom: 3px solid #2c3e50;
+                    padding-bottom: 6px;
+                    letter-spacing: 0.5px;
+                }
+                
+                /* ESTILOS DE LA SÚPER TABLA GENERAL */
+                .pdf-table {
+                    width: 100%;
+                    border-collapse: collapse;
+                    page-break-inside: auto;
+                }
+                .pdf-table tr {
+                    page-break-inside: avoid;
+                    page-break-after: auto;
+                }
+                .pdf-table th, .pdf-table td {
+                    border: 1px solid #7f8c8d;
+                    padding: 6px 4px;
+                    text-align: center;
+                    vertical-align: middle;
+                }
+                .pdf-table th {
+                    background-color: #2c3e50;
+                    color: white;
+                    font-size: 9pt;
+                    font-weight: bold;
+                    text-transform: uppercase;
+                }
+                .col-dia {
+                    background-color: #eaeded;
+                    text-transform: uppercase;
+                    font-size: 8pt;
+                    letter-spacing: 0.5px;
+                }
+                .col-hora {
+                    background-color: #f4f6f7;
+                    font-weight: bold;
+                }
+                .pdf-receso {
+                    background-color: #f2f4f4;
+                    font-weight: bold;
+                    color: #7f8c8d;
+                    letter-spacing: 4px;
+                    font-size: 8.5pt;
+                    text-transform: uppercase;
+                }
+                .pdf-celda {
+                    background-color: #ffffff;
+                }
+                .pdf-materia {
+                    font-weight: bold;
+                    color: #2c3e50;
+                    font-size: 8.5pt;
+                }
+                .pdf-profesor {
+                    color: #626567;
+                    font-size: 7.5pt;
+                    margin-top: 3px;
+                    font-style: italic;
+                }
+                .pdf-vacio {
+                    color: #bdc3c7;
+                    font-size: 9pt;
+                }
+                
+                /* Reglas específicas de impresión física */
+                @media print {
+                    .espacio-membrete {
+                        border: none;
+                        background: transparent;
+                    }
+                    .espacio-membrete::after {
+                        display: none; /* Oculta el texto guía para que el papel salga totalmente limpio */
+                    }
+                    th {
+                        background-color: #2c3e50 !important;
+                        color: white !important;
+                        -webkit-print-color-adjust: exact;
+                        print-color-adjust: exact;
+                    }
+                    .col-dia {
+                        background-color: #eaeded !important;
+                        -webkit-print-color-adjust: exact;
+                        print-color-adjust: exact;
+                    }
+                    .pdf-receso {
+                        background-color: #f2f4f4 !important;
+                        -webkit-print-color-adjust: exact;
+                        print-color-adjust: exact;
+                    }
+                }
+            </style>
+        </head>
+            <body>
+        <div id="encabezado-unico">
+            <img id="logo1" class="logo-img">
+            <img id="logo2" class="logo-img">
+            <img id="logo3" class="logo-img">
+        </div>
+
+        <div class="titulo-reporte">Sábana General de Horarios Institucionales</div>
+        ${tablaHtml}
+        
+            <script>
+            window.onload = function() {
+                // Asignamos las imágenes primero
+                // Asegúrate de que las IDs sean exactamente logo1, logo2, logo3
+                // Si el Base64 está dando problemas, prueba con un SRC vacío para ver si abre
+                document.getElementById('logo1').src = "TU_BASE64_1";
+                document.getElementById('logo2').src = "TU_BASE64_2";
+                document.getElementById('logo3').src = "TU_BASE64_3";
+                
+                // Damos tiempo a que el navegador "vea" las imágenes
+                / Ejecución y auto-cierre de la ventana de impresión
+
+                window.onload = function() {
+                    setTimeout(function() {
+                        window.print();
+                        window.close();
+                    }, 300); 
+            };
+        </script>
+    </body>
+    </html>
+`);
+    ventanaImpresion.document.close();
 }

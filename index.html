@@ -146,7 +146,7 @@
         <section id="crear-horario" class="tab-content">
             <h2>Generación Automática con Distribución Anticlúster</h2>
             <div class="card-selection" style="display: flex; align-items: center; gap: 15px; margin-bottom: 20px; flex-wrap: wrap;">
-                <label>Visualizar Cronograma de:</label>
+                 <label>Visualizar Cronograma de:</label>
                 <select id="filtro-anio" onchange="actualizarTablaHorarioVisual()">
                     <option value="1">1er Año</option>
                     <option value="2">2do Año</option>
@@ -160,10 +160,20 @@
                 </select>
                 <button type="button" class="btn-generate" onclick="procesarMotorHorarios()">⚡ GENERAR HORARIO INSTITUCIONAL</button>
                 <button type="button" style="background-color: #e74c3c; color: white; border: none; padding: 0.7rem 1.2rem; border-radius: 4px; cursor: pointer; font-weight: bold;" onclick="eliminarHorariosTotales()">BORRAR HORARIOS GENERADOS</button>
-                <button type="button" style="background-color: #27ae60; color: white; border: none; padding: 0.7rem 1.2rem; border-radius: 4px; cursor: pointer; font-weight: bold;" onclick="exportarPDF()">
-                    📄 Exportar PDF
+                <button type="button" class="btn-exportar" onclick="exportarSabanaPDF()">
+                    Exportar PDF
+                </button>
+                <button type="button" style="background-color: #8e44ad; color: white; border: none; padding: 0.7rem 1.2rem; border-radius: 4px; cursor: pointer; font-weight: bold;" onclick="generarSabana()">
+                    📊 VER SÁBANA GENERAL
                 </button>
             </div>
+            <div class="versiones-container">
+    <h3>📋 Historial de Versiones</h3>
+    <p class="versiones-ayuda">Se guardan automáticamente hasta las últimas 3 versiones antes de un cambio destructivo.</p>
+    
+    <div id="lista-versiones">
+        </div>
+</div>
 
             <div class="schedule-container">
                 <table class="schedule-matrix">
@@ -179,6 +189,10 @@
                     </thead>
                     <tbody id="matriz-horario-body"></tbody>
                 </table>
+            </div>
+            <div id="contenedor-sabana-general" style="display: none; margin-top: 2rem;">
+                <h2 style="border-top: 2px solid #bdc3c7; padding-top: 1.5rem;">Sábana General Institucional</h2>
+                <div id="contenido-sabana"></div>
             </div>
            
         </section>

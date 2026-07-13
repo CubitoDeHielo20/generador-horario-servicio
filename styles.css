@@ -410,3 +410,107 @@ input, select {
   border-color: #2980b9;
   box-shadow: 0 0 5px rgba(41, 128, 185, 0.2);
 }
+
+.versiones-container {
+    background: var(--white, #ffffff);
+    padding: 1.5rem;
+    border-radius: 6px;
+    margin-top: 1.5rem;
+    margin-bottom: 1.5rem;
+    border: 1px solid var(--border, #e0e0e0);
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
+}
+
+.versiones-container h3 {
+    margin-top: 0;
+    margin-bottom: 5px;
+    color: #2c3e50;
+}
+
+.versiones-ayuda {
+    font-size: 0.85rem;
+    color: #7f8c8d;
+    margin-bottom: 1rem;
+}
+
+.versiones-list {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.version-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 12px 15px;
+    background: #f8f9fa;
+    border-radius: 4px;
+    border-left: 4px solid #2ecc71; /* Detalle verde de éxito */
+    border-top: 1px solid #eaeded;
+    border-right: 1px solid #eaeded;
+    border-bottom: 1px solid #eaeded;
+}
+
+.version-info {
+    font-size: 0.95rem;
+    color: #34495e;
+}
+
+.btn-restaurar {
+    background-color: #2ecc71;
+    color: white;
+    border: none;
+    padding: 6px 14px;
+    border-radius: 4px;
+    cursor: pointer;
+    font-weight: bold;
+    font-size: 0.85rem;
+    transition: background 0.2s, transform 0.1s;
+}
+
+.btn-restaurar:hover {
+    background-color: #27ae60;
+}
+
+.btn-restaurar:active {
+    transform: scale(0.98);
+}
+
+/* =========================================
+   ESTILOS PARA LA SÁBANA GENERAL
+   ========================================= */
+.table-responsive {
+    width: 100%;
+    overflow-x: auto; /* Permite scroll horizontal */
+    margin-bottom: 2.5rem;
+    box-shadow: 0 4px 15px rgba(0,0,0,0.08);
+    border-radius: 0 0 6px 6px;
+}
+
+.sabana-dia h3 {
+    background-color: #2c3e50;
+    color: white;
+    padding: 12px 20px;
+    margin: 0;
+    border-radius: 6px 6px 0 0;
+    font-size: 1.1rem;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+}
+
+.sabana-table {
+    border-radius: 0 !important;
+    box-shadow: none !important;
+}
+
+.sabana-table th, .sabana-table td {
+    min-width: 140px; /* Evita que las columnas se aplasten */
+}
+
+.sabana-table th {
+    background-color: #34495e !important; /* Un tono un poco más claro que el título del día */
+}

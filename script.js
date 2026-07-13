@@ -35,6 +35,9 @@ document.addEventListener("DOMContentLoaded", () => {
     actualizarListasAdministrativas();
     actualizarTablaHorarioVisual();
     actualizarListaVersionesUI();
+
+    document.getElementById('buscar-materia')?.addEventListener('input', actualizarVistaMaterias);
+    document.getElementById('filtrar-anio')?.addEventListener('change', actualizarVistaMaterias);
 });
 
 // FUNCIÓN DE NOTIFICACIONES TOAST
@@ -271,30 +274,53 @@ function actualizarVistaMaterias() {
   const contenedor = document.getElementById('contenedor-fichas-materias');
   if (!contenedor) return;
   contenedor.innerHTML = '';
+  
+  // Mantenemos tus filtros originales intactos
   const filterBusqueda = document.getElementById('buscar-materia')?.value.toLowerCase().trim() || '';
   const filterAnio = document.getElementById('filtrar-anio')?.value || 'todos';
+  
   let materias = DB.obtenerMaterias();
   materias = materias.filter(m => {
     const coincideTexto = m.nombre.toLowerCase().includes(filterBusqueda);
     const coincideAnio = (filterAnio === 'todos') || (m.anio === filterAnio);
     return coincideTexto && coincideAnio;
   });
+  
   if (materias.length === 0) return;
   
+  // Ordenamos y renderizamos con el nuevo diseño de front 2.jpg
   materias.sort((a, b) => a.anio.localeCompare(b.anio)).forEach(m => {
     const ficha = document.createElement('div');
     ficha.className = 'materia-card animate-card';
-    const coloresAnio = { "1": "#2c3e50", "2": "#16a085", "3": "#2980b9", "4": "#8e44ad", "5": "#d35400" };
-    ficha.style.backgroundColor = coloresAnio[m.anio] || "#34495e";
+    
+    // Nueva paleta de colores: Texto oscuro/Borde fino y Fondo pastel sutil
+    const estilosAnio = {
+      "1": { texto: "#1e3a8a", fondo: "#eff6ff" }, // Azul (Historia)
+      "2": { texto: "#115e59", fondo: "#f0fdfa" }, // Verde/Turquesa (Ciencias)
+      "3": { texto: "#0369a1", fondo: "#f0f9ff" }, // Celeste (Castellano)
+      "4": { texto: "#6b21a8", fondo: "#f3e8ff" }, // Morado (Arte)
+      "5": { texto: "#c2410c", fondo: "#fff7ed" }  // Naranja/Rojo (CRP)
+    };
+
+    const estiloActual = estilosAnio[m.anio] || { texto: "#1e293b", fondo: "#f8fafc" };
+    
+    // Aplicamos los colores dinámicos a la tarjeta
+    ficha.style.color = estiloActual.texto;
+    ficha.style.backgroundColor = estiloActual.fondo;
+    
+    // Inyectamos la nueva estructura con la píldora de bloques
     ficha.innerHTML = `
       <div class="materia-card-content">
-        <h3>${m.nombre}</h3><div class="info-tag"><strong>Año:</strong> ${m.anio}° Año</div>
+        <h3>${m.nombre}</h3>
+        <div class="info-tag"><strong>Año:</strong> ${m.anio}° Año</div>
         <div class="info-tag"><strong>Carga Horaria:</strong> ${m.horas} horas semanales</div>
+        <div class="badge-bloques">2 Bloques de 90 min</div>
       </div>
       <div class="materia-card-actions">
         <button class="btn-editar-ficha" onclick="cargarMateriaEnFormulario('${m.id}')">Editar</button>
         <button class="btn-eliminar-ficha" onclick="borrarMateriaRegistro('${m.id}')">Eliminar</button>
       </div>`;
+      
     contenedor.appendChild(ficha);
   });
 }
